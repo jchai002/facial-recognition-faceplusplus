@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "csv-write-stream": "^2.0.0",
     "form-data": "^2.3.1",
     "fs": "^0.0.1-security",
     "node-fetch": "^1.7.3"
