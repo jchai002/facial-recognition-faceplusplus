@@ -2,6 +2,7 @@
   "dependencies": {
     "await-timeout": "^0.1.6",
     "csv-write-stream": "^2.0.0",
+    "dotenv": "^4.0.0",
     "form-data": "^2.3.1",
     "fs": "^0.0.1-security",
     "node-fetch": "^1.7.3"
