@@ -1,4 +1,5 @@
-var fs = require("fs");
+const fs = require("fs");
+const Timeout = require("await-timeout");
 const fetch = require("node-fetch");
 const FormData = require("form-data");
 const csvWriter = require("csv-write-stream");
@@ -35,65 +36,66 @@ function calculateFwhr1(landmark) {
 
   return fwhr1;
 }
+
+async function makeOneCall() {
+  console.log("calling api");
+  const timeout = new Timeout();
+  try {
+  } catch (e) {
+    console.error(e);
+  } finally {
+    timeout.clear();
+  }
+}
+
 function callApi() {
-  // make file
-  writer.pipe(fs.createWriteStream("out.csv"));
-  var processed = 0;
   const proc = new Promise(() => {
+    var offset = 0;
+    writer.pipe(fs.createWriteStream("out.csv"));
     fs.readdir("./images", function(err, files) {
-      files.forEach(function(file) {
+      files.map(function(file) {
         setTimeout(async function() {
+          console.log(file);
           var base64Str = base64_encode(file);
           var form = new FormData();
           form.append("image_base64", base64Str);
           form.append("return_landmark", 1);
           form.append("return_attributes", "smiling,blur");
-
-          try {
-            console.log("trying to fetch", processed);
-            var res = await fetch(
-              "https://api-us.faceplusplus.com/facepp/v3/detect?api_key=cjf6uSKR0oJAs6Gcwrh8PPSFzEATZjOa&api_secret=REithMdH9Bfbxy4oGTGK7flkD5AKekT-",
-              {
-                method: "POST",
-                body: form
-              }
-            );
-          } catch (e) {
-            console.log("api err", e);
-          } finally {
-            var json = await res.json();
-            if (json && json.faces) {
-              var { landmark, attributes } = json.faces[0];
-              var { smile, blur } = attributes;
-              var csvRow = [];
-
-              // record name
-              csvRow.push(
-                file
-                  .replace(/[^a-zA-Z ]/g, " ")
-                  .replace("png", "")
-                  .toLowerCase()
-              );
-
-              // record fwhr
-              csvRow.push(calculateFwhr1(landmark));
-
-              // record smile
-              csvRow.push(smile.value);
-
-              // record blur
-              csvRow.push(blur.blurness.value);
-              writer.write(csvRow);
-              processed++;
-              console.log(processed);
+          var res = await fetch(
+            "https://api-us.faceplusplus.com/facepp/v3/detect?api_key=cjf6uSKR0oJAs6Gcwrh8PPSFzEATZjOa&api_secret=REithMdH9Bfbxy4oGTGK7flkD5AKekT-",
+            {
+              method: "POST",
+              body: form
             }
+          );
+          if (res) {
+            var json = await res.json();
+            var { landmark, attributes } = json.faces[0];
+            var { smile, blur } = attributes;
+            var csvRow = [];
+
+            // record name
+            csvRow.push(file.replace(/[^a-zA-Z ]/g, " ").replace("png", ""));
+
+            // record fwhr
+            csvRow.push(calculateFwhr1(landmark));
+
+            // record smile
+            csvRow.push(smile.value);
+
+            // record blur
+            csvRow.push(blur.blurness.value);
+            writer.write(csvRow);
+            console.log(csvRow);
           }
-        }, 500);
+        }, 500 + offset);
+        offset += 500;
       });
     });
   });
-  // end stream
+
   proc.then(() => {
+    // end stream
     writer.end();
   });
 }
