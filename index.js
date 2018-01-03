@@ -41,39 +41,54 @@ function callApi() {
   var processed = 0;
   const proc = new Promise(() => {
     fs.readdir("./images", function(err, files) {
-      files.forEach(async function(file) {
-        var base64Str = base64_encode(file);
-        var form = new FormData();
-        form.append("image_base64", base64Str);
-        form.append("return_landmark", 1);
-        form.append("return_attributes", "smiling,blur");
+      files.forEach(function(file) {
+        setTimeout(async function() {
+          var base64Str = base64_encode(file);
+          var form = new FormData();
+          form.append("image_base64", base64Str);
+          form.append("return_landmark", 1);
+          form.append("return_attributes", "smiling,blur");
 
-        var res = await fetch(
-          "https://api-us.faceplusplus.com/facepp/v3/detect?api_key=cjf6uSKR0oJAs6Gcwrh8PPSFzEATZjOa&api_secret=REithMdH9Bfbxy4oGTGK7flkD5AKekT-",
-          {
-            method: "POST",
-            body: form
+          try {
+            console.log("trying to fetch", processed);
+            var res = await fetch(
+              "https://api-us.faceplusplus.com/facepp/v3/detect?api_key=cjf6uSKR0oJAs6Gcwrh8PPSFzEATZjOa&api_secret=REithMdH9Bfbxy4oGTGK7flkD5AKekT-",
+              {
+                method: "POST",
+                body: form
+              }
+            );
+          } catch (e) {
+            console.log("api err", e);
+          } finally {
+            var json = await res.json();
+            if (json && json.faces) {
+              var { landmark, attributes } = json.faces[0];
+              var { smile, blur } = attributes;
+              var csvRow = [];
+
+              // record name
+              csvRow.push(
+                file
+                  .replace(/[^a-zA-Z ]/g, " ")
+                  .replace("png", "")
+                  .toLowerCase()
+              );
+
+              // record fwhr
+              csvRow.push(calculateFwhr1(landmark));
+
+              // record smile
+              csvRow.push(smile.value);
+
+              // record blur
+              csvRow.push(blur.blurness.value);
+              writer.write(csvRow);
+              processed++;
+              console.log(processed);
+            }
           }
-        );
-        var json = await res.json();
-        var { landmark, attributes } = json.faces[0];
-        var { smile, blur } = attributes;
-        var csvRow = [];
-
-        // record name
-        csvRow.push(file.replace(/[^a-zA-Z ]/g, " ").replace("png", ""));
-
-        // record fwhr
-        csvRow.push(calculateFwhr1(landmark));
-
-        // record smile
-        csvRow.push(smile.value);
-
-        // record blur
-        csvRow.push(blur.blurness.value);
-        writer.write(csvRow);
-        processed++;
-        console.log(processed);
+        }, 500);
       });
     });
   });
