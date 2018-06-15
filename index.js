@@ -81,7 +81,7 @@ function callApi() {
             var csvRow = [];
 
             // record name
-            csvRow.push(file.replace(/[^a-zA-Z ]/g, " ").replace("png", ""));
+            csvRow.push(file.replace("png", ""));
 
             csvRow.push(landmark.mouth_upper_lip_left_contour2.y);
             csvRow.push(landmark.mouth_upper_lip_left_contour2.x);
